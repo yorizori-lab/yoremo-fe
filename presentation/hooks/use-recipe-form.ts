@@ -2,17 +2,31 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { Recipe, Ingredient, Seasoning, Instruction } from "@/domain/models/recipe"
 import { CreateRecipeUseCase } from "@/application/use-cases/recipe/create-recipe"
 import { RecipeApi } from "@/infrastructure/api/recipe-api"
+import { 
+  getCategoryTypes, 
+  getCategorySituations, 
+  getCategoryIngredients, 
+  getCategoryMethods,
+  type Category 
+} from "@/infrastructure/api/repositories/category-repository"
 
 export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 카테고리 데이터 상태
+  const [categoryTypes, setCategoryTypes] = useState<Category[]>([])
+  const [categorySituations, setCategorySituations] = useState<Category[]>([])
+  const [categoryIngredients, setCategoryIngredients] = useState<Category[]>([])
+  const [categoryMethods, setCategoryMethods] = useState<Category[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
 
   // 기본 정보
   const [title, setTitle] = useState(initialRecipe?.title || "")
@@ -30,6 +44,33 @@ export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
   const [imageUrl, setImageUrl] = useState(initialRecipe?.image_url || "")
   const [tags, setTags] = useState<string[]>(initialRecipe?.tags || [])
   const [tagInput, setTagInput] = useState("")
+
+  // API에서 카테고리 데이터 가져오기
+  useEffect(() => {
+    const fetchCategoryData = async () => {
+      setIsLoadingCategories(true)
+      try {
+        const [types, situations, ingredients, methods] = await Promise.all([
+          getCategoryTypes(),
+          getCategorySituations(),
+          getCategoryIngredients(),
+          getCategoryMethods()
+        ]);
+        
+        setCategoryTypes(types)
+        setCategorySituations(situations)
+        setCategoryIngredients(ingredients)
+        setCategoryMethods(methods)
+      } catch (error) {
+        console.error('카테고리 데이터를 가져오는 중 오류 발생:', error)
+        setError('카테고리 데이터를 가져오지 못했습니다.')
+      } finally {
+        setIsLoadingCategories(false)
+      }
+    }
+
+    fetchCategoryData()
+  }, [])
 
   // JSONB 필드
   const [ingredients, setIngredients] = useState<Ingredient[]>(
@@ -233,6 +274,13 @@ export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
     ingredients,
     seasonings,
     instructions,
+    
+    // 카테고리 데이터
+    categoryTypes,
+    categorySituations,
+    categoryIngredients,
+    categoryMethods,
+    isLoadingCategories,
 
     // 상태 변경 함수
     setTitle,
