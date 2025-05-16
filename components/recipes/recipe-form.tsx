@@ -9,35 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useRecipeForm } from "@/presentation/hooks/use-recipe-form"
+import { Skeleton } from "@/components/ui/skeleton"
 
-// 카테고리 데이터 (실제로는 API에서 가져와야 함)
-const categoryTypes = [
-  { id: 1, name: "한식" },
-  { id: 2, name: "양식" },
-  { id: 3, name: "중식" },
-  { id: 4, name: "일식" },
-]
-
-const categorySituations = [
-  { id: 5, name: "일상" },
-  { id: 6, name: "손님초대" },
-  { id: 7, name: "술안주" },
-  { id: 8, name: "간식" },
-]
-
-const categoryIngredients = [
-  { id: 9, name: "돼지고기" },
-  { id: 10, name: "소고기" },
-  { id: 11, name: "해산물" },
-  { id: 12, name: "채소" },
-]
-
-const categoryMethods = [
-  { id: 13, name: "볶음" },
-  { id: 14, name: "구이" },
-  { id: 15, name: "찜" },
-  { id: 16, name: "튀김" },
-]
+// 카테고리 데이터는 API에서 가져옵니다 (useRecipeForm 내부에서 처리)
 
 const difficultyOptions = ["쉬움", "보통", "어려움"]
 
@@ -63,6 +37,13 @@ export default function RecipeForm() {
     ingredients,
     seasonings,
     instructions,
+
+    // 카테고리 데이터
+    categoryTypes,
+    categorySituations,
+    categoryIngredients,
+    categoryMethods,
+    isLoadingCategories,
 
     // 상태 변경 함수
     setTitle,
@@ -179,78 +160,106 @@ export default function RecipeForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category-type">종류별 카테고리</Label>
-                <Select
-                  value={categoryType?.toString() || ""}
-                  onValueChange={(value) => setCategoryType(Number.parseInt(value))}
-                >
-                  <SelectTrigger id="category-type">
-                    <SelectValue placeholder="종류 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryTypes.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isLoadingCategories ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={categoryType?.toString() || ""}
+                    onValueChange={(value) => setCategoryType(Number.parseInt(value))}
+                  >
+                    <SelectTrigger id="category-type">
+                      <SelectValue placeholder="종류 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(categoryTypes || []).map((category) => (
+                        <SelectItem 
+                          key={category?.category_id} 
+                          value={category?.category_id.toString()}
+                        >
+                          {category?.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="category-situation">상황별 카테고리</Label>
-                <Select
-                  value={categorySituation?.toString() || ""}
-                  onValueChange={(value) => setCategorySituation(Number.parseInt(value))}
-                >
-                  <SelectTrigger id="category-situation">
-                    <SelectValue placeholder="상황 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categorySituations.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isLoadingCategories ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={categorySituation?.toString() || ""}
+                    onValueChange={(value) => setCategorySituation(Number.parseInt(value))}
+                  >
+                    <SelectTrigger id="category-situation">
+                      <SelectValue placeholder="상황 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(categorySituations || []).map((category) => (
+                        <SelectItem 
+                          key={category?.category_id} 
+                          value={category?.category_id.toString()}
+                        >
+                          {category?.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="category-ingredient">재료별 카테고리</Label>
-                <Select
-                  value={categoryIngredient?.toString() || ""}
-                  onValueChange={(value) => setCategoryIngredient(Number.parseInt(value))}
-                >
-                  <SelectTrigger id="category-ingredient">
-                    <SelectValue placeholder="주 재료 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryIngredients.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isLoadingCategories ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={categoryIngredient?.toString() || ""}
+                    onValueChange={(value) => setCategoryIngredient(Number.parseInt(value))}
+                  >
+                    <SelectTrigger id="category-ingredient">
+                      <SelectValue placeholder="주 재료 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(categoryIngredients || []).map((category) => (
+                        <SelectItem 
+                          key={category?.category_id} 
+                          value={category?.category_id.toString()}
+                        >
+                          {category?.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="category-method">방법별 카테고리</Label>
-                <Select
-                  value={categoryMethod?.toString() || ""}
-                  onValueChange={(value) => setCategoryMethod(Number.parseInt(value))}
-                >
-                  <SelectTrigger id="category-method">
-                    <SelectValue placeholder="조리 방법 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryMethods.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isLoadingCategories ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={categoryMethod?.toString() || ""}
+                    onValueChange={(value) => setCategoryMethod(Number.parseInt(value))}
+                  >
+                    <SelectTrigger id="category-method">
+                      <SelectValue placeholder="조리 방법 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(categoryMethods || []).map((category) => (
+                        <SelectItem 
+                          key={category?.category_id} 
+                          value={category?.category_id.toString()}
+                        >
+                          {category?.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
