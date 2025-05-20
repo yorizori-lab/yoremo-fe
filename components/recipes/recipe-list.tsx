@@ -5,9 +5,29 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, Users } from "lucide-react"
 import { useRecipes } from "@/presentation/hooks/use-recipes"
 import type { Recipe } from "@/domain/models/recipe"
+import type { RecipeFilters } from "@/domain/repositories/recipe-repository"
+import { useEffect } from "react"
+import { Pagination } from "@/components/ui/pagination"
 
-export default function RecipeList() {
-  const { recipes, loading, error } = useRecipes()
+export interface RecipeListProps {
+  initialFilters?: RecipeFilters;
+}
+
+export default function RecipeList({ initialFilters }: RecipeListProps) {
+  const { recipes, loading, error, refreshData, pagination, changePage } = useRecipes(initialFilters)
+  
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // 디버깅용 로그
+  useEffect(() => {
+    // 첫 번째 레시피 데이터 형식 확인
+    if (recipes.length > 0) {
+      const firstRecipe = recipes[0];
+    }
+  }, [recipes, pagination]);
 
   if (error) {
     return (
@@ -18,11 +38,12 @@ export default function RecipeList() {
     )
   }
 
-  if (loading) {
+  // 로딩 중일 때는 항상 스켈레톤 표시 (초기 로딩일 때만)
+  if (loading && recipes.length === 0) {
     return <RecipeListSkeleton />
   }
-
-  if (recipes.length === 0) {
+  
+  if (!loading && recipes.length === 0) {
     return (
       <div className="p-8 text-center">
         <p className="text-xl font-medium">레시피가 없습니다.</p>
@@ -30,124 +51,122 @@ export default function RecipeList() {
       </div>
     )
   }
-
+  
+  // 페이지 번호는 0부터 시작하므로 화면 표시용으로 +1
+  const displayPageNumber = pagination.number + 1;
+  const totalPages = pagination.totalPages;
+  const totalItems = pagination.totalElements;
+  
   return (
-    <div>
-      <div className="mb-4">
-        <p className="text-muted-foreground">총 {recipes.length}개의 레시피</p>
+    <div className={loading ? "opacity-70 pointer-events-none" : ""}>
+      {/* 전체 영역 - 고정 높이 */}
+      <div className="flex flex-col" style={{ minHeight: "780px" }}>
+        {/* 레시피 컨테이너 - 카드 크기 고정 */}
+        <div className="grid-container">
+          {recipes.map((recipe) => (
+            <div className="recipe-card-wrapper" key={recipe.recipeId || recipe.recipe_id}>
+              <RecipeCard recipe={recipe} />
+            </div>
+          ))}
+        </div>
+        
+        {/* 페이지네이션 - 하단 고정 */}
+        <div className="mt-auto pt-4">
+          {pagination.totalPages > 1 && (
+            <Pagination 
+              currentPage={pagination.number} 
+              totalPages={pagination.totalPages}
+              onPageChange={changePage}
+              disabled={loading}
+            />
+          )}
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recipes.map((recipe) => (
-          <RecipeCard key={recipe.recipe_id} recipe={recipe} />
-        ))}
-      </div>
+      
+      {/* 카드 크기 고정을 위한 스타일 */}
+      <style jsx global>{`
+        .grid-container {
+          display: flex;
+          flex-wrap: wrap;
+          margin: -12px;
+        }
+        
+        .recipe-card-wrapper {
+          width: calc(33.333% - 24px);
+          margin: 12px;
+          height: 294px;
+        }
+        
+        @media (max-width: 1024px) {
+          .recipe-card-wrapper {
+            width: calc(50% - 24px);
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .recipe-card-wrapper {
+            width: calc(100% - 24px);
+          }
+        }
+      `}</style>
     </div>
   )
 }
 
-// 임시 데이터를 위한 타입 확장
-interface RecipeWithExtra extends Partial<Recipe> {
-  recipe_id: number
-  title: string
-  image_url?: string
-  cook_time?: number | null
-  serving_size?: number | null
-  difficulty?: string | null
-  category_type?: number | null
-}
+function RecipeCard({ recipe }: { recipe: Recipe }) {
+  // 백엔드 API 응답 필드명에 맞게 조정 (snake_case와 camelCase 모두 지원)
+  const recipeId = recipe.recipeId || recipe.recipe_id
+  const title = recipe.title
+  const imageUrl = recipe.imageUrl || recipe.image_url
+  const cookTime = recipe.cookTime || recipe.cook_time
+  const servingSize = recipe.servingSize || recipe.serving_size
+  const categoryType = recipe.categoryType || recipe.category_type
+  const difficulty = recipe.difficulty
 
-// 카테고리 매핑 (실제로는 API에서 가져와야 함)
-const categoryMap: Record<number, string> = {
-  1: "한식",
-  2: "양식",
-  3: "중식",
-  4: "일식",
-}
-
-function RecipeCard({ recipe }: { recipe: RecipeWithExtra }) {
-  // 실제 API 데이터가 없는 경우를 위한 임시 데이터
-  const dummyRecipes = [
-    {
-      recipe_id: 1,
-      title: "매콤한 김치찌개",
-      image_url: "/placeholder.svg?height=300&width=400",
-      cook_time: 30,
-      serving_size: 4,
-      difficulty: "쉬움",
-      category_type: 1,
-    },
-    {
-      recipe_id: 2,
-      title: "크림 파스타",
-      image_url: "/placeholder.svg?height=300&width=400",
-      cook_time: 20,
-      serving_size: 2,
-      difficulty: "쉬움",
-      category_type: 2,
-    },
-    {
-      recipe_id: 3,
-      title: "소고기 불고기",
-      image_url: "/placeholder.svg?height=300&width=400",
-      cook_time: 40,
-      serving_size: 4,
-      difficulty: "보통",
-      category_type: 1,
-    },
-    {
-      recipe_id: 4,
-      title: "해물 볶음밥",
-      image_url: "/placeholder.svg?height=300&width=400",
-      cook_time: 25,
-      serving_size: 2,
-      difficulty: "쉬움",
-      category_type: 3,
-    },
-  ]
-
-  // 실제 데이터가 없는 경우 더미 데이터에서 찾기
-  const dummyRecipe = dummyRecipes.find((r) => r.recipe_id === recipe.recipe_id)
-  const displayRecipe = {
-    ...dummyRecipe,
-    ...recipe,
+  if (!title || !recipeId) {
+    return null;
   }
 
   return (
-    <Link href={`/recipes/${recipe.recipe_id}`}>
+    <Link href={`/recipes/${recipeId}`} className="block h-full">
       <Card className="h-full overflow-hidden hover:shadow-md transition-shadow">
         <div className="aspect-video w-full overflow-hidden">
           <img
-            src={displayRecipe.image_url || "/placeholder.svg?height=300&width=400"}
-            alt={displayRecipe.title}
+            src={imageUrl || "/placeholder.svg?height=300&width=400"}
+            alt={title}
             className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
           />
         </div>
         <CardHeader className="p-4">
           <div className="flex justify-between items-start">
-            <CardTitle className="text-lg">{displayRecipe.title}</CardTitle>
-            {displayRecipe.category_type && (
-              <Badge variant="outline">{categoryMap[displayRecipe.category_type] || "기타"}</Badge>
+            <CardTitle className="text-lg">{title}</CardTitle>
+            {categoryType && (
+              <Badge variant="outline">{categoryType}</Badge>
             )}
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-0">
           <div className="flex items-center text-sm text-muted-foreground">
-            {displayRecipe.cook_time && (
+            {cookTime !== undefined && cookTime !== null && (
               <>
                 <Clock className="mr-1 h-4 w-4" />
-                <span className="mr-4">{displayRecipe.cook_time}분</span>
+                <span className="mr-4">{cookTime}분</span>
               </>
             )}
-            {displayRecipe.serving_size && (
+            {servingSize && (
               <>
                 <Users className="mr-1 h-4 w-4" />
-                <span>{displayRecipe.serving_size}인분</span>
+                <span>{servingSize}인분</span>
               </>
             )}
           </div>
         </CardContent>
         <CardFooter className="p-4 pt-0">
-          {displayRecipe.difficulty && <Badge variant="secondary">{displayRecipe.difficulty}</Badge>}
+          {difficulty && 
+            <Badge variant="secondary">
+              {difficulty}
+            </Badge>
+          }
         </CardFooter>
       </Card>
     </Link>
@@ -156,21 +175,56 @@ function RecipeCard({ recipe }: { recipe: RecipeWithExtra }) {
 
 function RecipeListSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <Card key={index} className="h-full overflow-hidden">
-          <div className="aspect-video w-full bg-muted animate-pulse" />
-          <CardHeader className="p-4">
-            <div className="h-6 bg-muted animate-pulse rounded w-3/4" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="h-4 bg-muted animate-pulse rounded w-1/2 mb-2" />
-          </CardContent>
-          <CardFooter className="p-4 pt-0">
-            <div className="h-6 bg-muted animate-pulse rounded w-16" />
-          </CardFooter>
-        </Card>
-      ))}
+    <div className="flex flex-col" style={{ minHeight: "780px" }}>
+      <div className="grid-container">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div className="recipe-card-wrapper" key={index}>
+            <Card className="h-full overflow-hidden">
+              <div className="aspect-video w-full bg-muted animate-pulse" />
+              <CardHeader className="p-4">
+                <div className="h-6 bg-muted animate-pulse rounded w-3/4" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="h-4 bg-muted animate-pulse rounded w-1/2 mb-2" />
+              </CardContent>
+              <CardFooter className="p-4 pt-0">
+                <div className="h-6 bg-muted animate-pulse rounded w-16" />
+              </CardFooter>
+            </Card>
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto pt-4">
+        {/* 스켈레톤에서도 동일한 위치에 페이지네이션 영역 확보 */}
+        <div className="py-6"></div>
+      </div>
+      
+      {/* 스켈레톤도 동일한 스타일 적용을 위한 코드 */}
+      <style jsx global>{`
+        .grid-container {
+          display: flex;
+          flex-wrap: wrap;
+          margin: -12px;
+        }
+        
+        .recipe-card-wrapper {
+          width: calc(33.333% - 24px);
+          margin: 12px;
+          height: 350px;
+        }
+        
+        @media (max-width: 1024px) {
+          .recipe-card-wrapper {
+            width: calc(50% - 24px);
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .recipe-card-wrapper {
+            width: calc(100% - 24px);
+          }
+        }
+      `}</style>
     </div>
   )
 }

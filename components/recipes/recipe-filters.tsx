@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,46 +9,72 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Search, X } from "lucide-react"
 import { useRecipes } from "@/presentation/hooks/use-recipes"
+import { 
+  getCategoryTypes, 
+  getCategorySituations, 
+  getCategoryIngredients, 
+  getCategoryMethods 
+} from "@/infrastructure/api/repositories/category-repository"
+import type { Category } from "@/domain/models/category"
+import type { RecipeFilters as RecipeFiltersType } from "@/domain/repositories/recipe-repository"
+import { Skeleton } from "@/components/ui/skeleton"
 
-// 카테고리 데이터 (실제로는 API에서 가져와야 함)
-const categoryTypes = [
-  { id: 1, name: "한식" },
-  { id: 2, name: "양식" },
-  { id: 3, name: "중식" },
-  { id: 4, name: "일식" },
-]
+export interface RecipeFiltersProps {
+  onFiltersChange?: (filters: RecipeFiltersType) => void;
+}
 
-const categorySituations = [
-  { id: 5, name: "일상" },
-  { id: 6, name: "손님초대" },
-  { id: 7, name: "술안주" },
-  { id: 8, name: "간식" },
-]
-
-const categoryIngredients = [
-  { id: 9, name: "돼지고기" },
-  { id: 10, name: "소고기" },
-  { id: 11, name: "해산물" },
-  { id: 12, name: "채소" },
-]
-
-const categoryMethods = [
-  { id: 13, name: "볶음" },
-  { id: 14, name: "구이" },
-  { id: 15, name: "찜" },
-  { id: 16, name: "튀김" },
-]
-
-const difficultyOptions = ["쉬움", "보통", "어려움"]
-
-export default function RecipeFilters() {
-  const { filters, updateFilters } = useRecipes()
+export default function RecipeFilters({ onFiltersChange }: RecipeFiltersProps) {
+  const { filters, updateFilters, refreshData } = useRecipes()
   const [searchTerm, setSearchTerm] = useState(filters.search || "")
   const [selectedTags, setSelectedTags] = useState<string[]>(filters.tags || [])
   const [tagInput, setTagInput] = useState("")
 
+  // 카테고리 데이터 상태
+  const [categoryTypes, setCategoryTypes] = useState<Category[]>([])
+  const [categorySituations, setCategorySituations] = useState<Category[]>([])
+  const [categoryIngredients, setCategoryIngredients] = useState<Category[]>([])
+  const [categoryMethods, setCategoryMethods] = useState<Category[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
+
+  // API에서 카테고리 데이터 가져오기
+  useEffect(() => {
+    const fetchCategoryData = async () => {
+      setIsLoadingCategories(true)
+      try {
+        const [types, situations, ingredients, methods] = await Promise.all([
+          getCategoryTypes(),
+          getCategorySituations(),
+          getCategoryIngredients(),
+          getCategoryMethods()
+        ]);
+        
+        setCategoryTypes(types)
+        setCategorySituations(situations)
+        setCategoryIngredients(ingredients)
+        setCategoryMethods(methods)
+      } catch (error) {
+        console.error('카테고리 데이터를 가져오는 중 오류 발생:', error)
+      } finally {
+        setIsLoadingCategories(false)
+      }
+    }
+
+    fetchCategoryData()
+  }, [])
+
+  // 필터 업데이트 함수 - 원래 로직 + 부모에게 알림
+  const handleFilterUpdate = (newFilters: Partial<RecipeFiltersType>) => {
+    updateFilters(newFilters);
+    
+    // 부모 컴포넌트에게 필터 변경을 알림 (있을 경우에만)
+    if (onFiltersChange) {
+      const updatedFilters = { ...filters, ...newFilters };
+      onFiltersChange(updatedFilters);
+    }
+  }
+
   const handleSearch = () => {
-    updateFilters({ search: searchTerm })
+    handleFilterUpdate({ search: searchTerm })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -59,18 +84,34 @@ export default function RecipeFilters() {
   }
 
   const handleCategoryChange = (type: string, value: string) => {
-    updateFilters({ [type]: value ? Number.parseInt(value) : undefined })
+    if (value === "all") {
+      handleFilterUpdate({ [type]: undefined })
+    } else {
+      const categoryId = Number.parseInt(value);
+      handleFilterUpdate({ [type]: categoryId })
+    }
   }
 
+  // 난이도 데이터 맵핑 (프론트 <-> 백엔드)
+  const difficultyOptions = [
+    { value: "EASY", label: "쉬움" },
+    { value: "NORMAL", label: "보통" },
+    { value: "HARD", label: "어려움" }
+  ]
+
   const handleDifficultyChange = (value: string) => {
-    updateFilters({ difficulty: value || undefined })
+    if (value === "all") {
+      handleFilterUpdate({ difficulty: undefined })
+    } else {
+      handleFilterUpdate({ difficulty: value })
+    }
   }
 
   const handleAddTag = () => {
     if (tagInput && !selectedTags.includes(tagInput)) {
       const newTags = [...selectedTags, tagInput]
       setSelectedTags(newTags)
-      updateFilters({ tags: newTags })
+      handleFilterUpdate({ tags: newTags })
       setTagInput("")
     }
   }
@@ -78,21 +119,24 @@ export default function RecipeFilters() {
   const handleRemoveTag = (tag: string) => {
     const newTags = selectedTags.filter((t) => t !== tag)
     setSelectedTags(newTags)
-    updateFilters({ tags: newTags.length > 0 ? newTags : undefined })
+    handleFilterUpdate({ tags: newTags.length > 0 ? newTags : undefined })
   }
 
   const handleClearFilters = () => {
     setSearchTerm("")
     setSelectedTags([])
-    updateFilters({
+    
+    const clearedFilters = {
       search: undefined,
-      category_type: undefined,
-      category_situation: undefined,
-      category_ingredient: undefined,
-      category_method: undefined,
+      categoryTypeId: undefined,
+      categorySituationId: undefined,
+      categoryIngredientId: undefined,
+      categoryMethodId: undefined,
       difficulty: undefined,
       tags: undefined,
-    })
+    };
+    
+    handleFilterUpdate(clearedFilters);
   }
 
   return (
@@ -117,82 +161,98 @@ export default function RecipeFilters() {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="category-type">종류별</Label>
-            <Select
-              value={filters.category_type?.toString() || ""}
-              onValueChange={(value) => handleCategoryChange("category_type", value)}
-            >
-              <SelectTrigger id="category-type">
-                <SelectValue placeholder="종류 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                {categoryTypes.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isLoadingCategories ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.categoryTypeId?.toString() || ""}
+                onValueChange={(value) => handleCategoryChange("categoryTypeId", value)}
+              >
+                <SelectTrigger id="category-type">
+                  <SelectValue placeholder="종류 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  {categoryTypes.map((category) => (
+                    <SelectItem key={category.category_id} value={category.category_id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="category-situation">상황별</Label>
-            <Select
-              value={filters.category_situation?.toString() || ""}
-              onValueChange={(value) => handleCategoryChange("category_situation", value)}
-            >
-              <SelectTrigger id="category-situation">
-                <SelectValue placeholder="상황 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                {categorySituations.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isLoadingCategories ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.categorySituationId?.toString() || ""}
+                onValueChange={(value) => handleCategoryChange("categorySituationId", value)}
+              >
+                <SelectTrigger id="category-situation">
+                  <SelectValue placeholder="상황 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  {categorySituations.map((category) => (
+                    <SelectItem key={category.category_id} value={category.category_id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="category-ingredient">재료별</Label>
-            <Select
-              value={filters.category_ingredient?.toString() || ""}
-              onValueChange={(value) => handleCategoryChange("category_ingredient", value)}
-            >
-              <SelectTrigger id="category-ingredient">
-                <SelectValue placeholder="주 재료 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                {categoryIngredients.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isLoadingCategories ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.categoryIngredientId?.toString() || ""}
+                onValueChange={(value) => handleCategoryChange("categoryIngredientId", value)}
+              >
+                <SelectTrigger id="category-ingredient">
+                  <SelectValue placeholder="주 재료 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  {categoryIngredients.map((category) => (
+                    <SelectItem key={category.category_id} value={category.category_id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="category-method">방법별</Label>
-            <Select
-              value={filters.category_method?.toString() || ""}
-              onValueChange={(value) => handleCategoryChange("category_method", value)}
-            >
-              <SelectTrigger id="category-method">
-                <SelectValue placeholder="조리 방법 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                {categoryMethods.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isLoadingCategories ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.categoryMethodId?.toString() || ""}
+                onValueChange={(value) => handleCategoryChange("categoryMethodId", value)}
+              >
+                <SelectTrigger id="category-method">
+                  <SelectValue placeholder="조리 방법 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  {categoryMethods.map((category) => (
+                    <SelectItem key={category.category_id} value={category.category_id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
       </div>
@@ -206,8 +266,8 @@ export default function RecipeFilters() {
           <SelectContent>
             <SelectItem value="all">전체</SelectItem>
             {difficultyOptions.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>

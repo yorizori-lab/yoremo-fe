@@ -1,117 +1,117 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import React from 'react'
+import { Button } from '@/components/ui/button'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 
-import { cn } from "@/lib/utils"
-import { ButtonProps, buttonVariants } from "@/components/ui/button"
+interface PaginationProps {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+  disabled?: boolean
+}
 
-const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
-  <nav
-    role="navigation"
-    aria-label="pagination"
-    className={cn("mx-auto flex w-full justify-center", className)}
-    {...props}
-  />
-)
-Pagination.displayName = "Pagination"
+export function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  disabled = false
+}: PaginationProps) {
+  // 페이지 번호 배열 생성 (최대 5개)
+  const generatePageNumbers = () => {
+    const pages = []
+    const maxPagesToShow = 5
+    
+    // 표시할 페이지 범위 계산
+    let startPage = Math.max(0, currentPage - Math.floor(maxPagesToShow / 2))
+    const endPage = Math.min(totalPages - 1, startPage + maxPagesToShow - 1)
+    
+    // 끝 페이지에 따라 시작 페이지 조정
+    startPage = Math.max(0, Math.min(startPage, totalPages - maxPagesToShow))
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+    
+    return pages
+  }
 
-const PaginationContent = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<"ul">
->(({ className, ...props }, ref) => (
-  <ul
-    ref={ref}
-    className={cn("flex flex-row items-center gap-1", className)}
-    {...props}
-  />
-))
-PaginationContent.displayName = "PaginationContent"
+  // 페이지 번호 클릭 핸들러
+  const handlePageClick = (page: number) => {
+    if (page !== currentPage && !disabled) {
+      onPageChange(page)
+    }
+  }
 
-const PaginationItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<"li">
->(({ className, ...props }, ref) => (
-  <li ref={ref} className={cn("", className)} {...props} />
-))
-PaginationItem.displayName = "PaginationItem"
+  // 첫 페이지 또는 마지막 페이지면 비활성화
+  const isFirstPage = currentPage === 0
+  const isLastPage = currentPage === totalPages - 1
 
-type PaginationLinkProps = {
-  isActive?: boolean
-} & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">
+  // 페이지가 1페이지뿐이면 페이지네이션을 표시하지 않음
+  if (totalPages <= 1) {
+    return null
+  }
 
-const PaginationLink = ({
-  className,
-  isActive,
-  size = "icon",
-  ...props
-}: PaginationLinkProps) => (
-  <a
-    aria-current={isActive ? "page" : undefined}
-    className={cn(
-      buttonVariants({
-        variant: isActive ? "outline" : "ghost",
-        size,
-      }),
-      className
-    )}
-    {...props}
-  />
-)
-PaginationLink.displayName = "PaginationLink"
-
-const PaginationPrevious = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to previous page"
-    size="default"
-    className={cn("gap-1 pl-2.5", className)}
-    {...props}
-  >
-    <ChevronLeft className="h-4 w-4" />
-    <span>Previous</span>
-  </PaginationLink>
-)
-PaginationPrevious.displayName = "PaginationPrevious"
-
-const PaginationNext = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to next page"
-    size="default"
-    className={cn("gap-1 pr-2.5", className)}
-    {...props}
-  >
-    <span>Next</span>
-    <ChevronRight className="h-4 w-4" />
-  </PaginationLink>
-)
-PaginationNext.displayName = "PaginationNext"
-
-const PaginationEllipsis = ({
-  className,
-  ...props
-}: React.ComponentProps<"span">) => (
-  <span
-    aria-hidden
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
-    {...props}
-  >
-    <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More pages</span>
-  </span>
-)
-PaginationEllipsis.displayName = "PaginationEllipsis"
-
-export {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+  return (
+    <div className="flex items-center justify-center space-x-1 my-6">
+      {/* 첫 페이지 버튼 */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handlePageClick(0)}
+        disabled={isFirstPage || disabled}
+        className="hidden sm:flex"
+        aria-label="첫 페이지"
+      >
+        <ChevronsLeft className="h-4 w-4" />
+      </Button>
+      
+      {/* 이전 페이지 버튼 */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handlePageClick(currentPage - 1)}
+        disabled={isFirstPage || disabled}
+        aria-label="이전 페이지"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      
+      {/* 페이지 번호 버튼 */}
+      {generatePageNumbers().map((page) => (
+        <Button
+          key={page}
+          variant={page === currentPage ? "default" : "outline"}
+          size="icon"
+          onClick={() => handlePageClick(page)}
+          disabled={disabled}
+          aria-label={`${page + 1} 페이지`}
+          aria-current={page === currentPage ? "page" : undefined}
+        >
+          {page + 1}
+        </Button>
+      ))}
+      
+      {/* 다음 페이지 버튼 */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handlePageClick(currentPage + 1)}
+        disabled={isLastPage || disabled}
+        aria-label="다음 페이지"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+      
+      {/* 마지막 페이지 버튼 */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => handlePageClick(totalPages - 1)}
+        disabled={isLastPage || disabled}
+        className="hidden sm:flex"
+        aria-label="마지막 페이지"
+      >
+        <ChevronsRight className="h-4 w-4" />
+      </Button>
+    </div>
+  )
 }

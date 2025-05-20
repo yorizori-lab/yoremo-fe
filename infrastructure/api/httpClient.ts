@@ -1,4 +1,4 @@
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // 기본 HTTP 요청 함수
 export async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {

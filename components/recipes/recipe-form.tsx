@@ -13,7 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 // 카테고리 데이터는 API에서 가져옵니다 (useRecipeForm 내부에서 처리)
 
-const difficultyOptions = ["쉬움", "보통", "어려움"]
+// 난이도 옵션
+const difficultyOptions = [
+  { value: "EASY", label: "쉬움" },
+  { value: "NORMAL", label: "보통" },
+  { value: "HARD", label: "어려움" }
+]
 
 export default function RecipeForm() {
   const {
@@ -549,8 +554,8 @@ export default function RecipeForm() {
                 </SelectTrigger>
                 <SelectContent>
                   {difficultyOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

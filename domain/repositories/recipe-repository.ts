@@ -1,7 +1,7 @@
 import type { Recipe } from "../models/recipe"
 
 export interface RecipeRepository {
-  getRecipes(filters?: RecipeFilters): Promise<Recipe[]>
+  getRecipes(filters?: RecipeFilters): Promise<PageResponse<Recipe>>
   getRecipeById(id: number): Promise<Recipe | null>
   createRecipe(recipe: Recipe): Promise<Recipe>
   updateRecipe(id: number, recipe: Recipe): Promise<Recipe>
@@ -9,12 +9,26 @@ export interface RecipeRepository {
   getRecommendedRecipes(ingredients: string[]): Promise<Recipe[]>
 }
 
+export interface PageResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+  first: boolean
+  last: boolean
+  empty: boolean
+}
+
 export interface RecipeFilters {
-  category_type?: number
-  category_situation?: number
-  category_ingredient?: number
-  category_method?: number
+  categoryTypeId?: number
+  categorySituationId?: number
+  categoryIngredientId?: number
+  categoryMethodId?: number
   difficulty?: string
   search?: string
   tags?: string[]
+  page?: number
+  size?: number
+  sort?: string
 }

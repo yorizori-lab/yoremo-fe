@@ -8,8 +8,8 @@ export interface Category {
 
 // 카테고리 타입 상수
 export const CATEGORY_TYPES = {
-  TYPE: '종류별',
-  SITUATION: '상황별',
-  INGREDIENT: '재료별',
-  METHOD: '방법별'
+  TYPE: 'TYPE',
+  SITUATION: 'SITUATION',
+  INGREDIENT: 'INGREDIENT',
+  METHOD: 'METHOD'
 }; 

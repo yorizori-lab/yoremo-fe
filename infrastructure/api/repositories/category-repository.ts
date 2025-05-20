@@ -4,11 +4,9 @@ import { Category, CATEGORY_TYPES } from '../../../domain/models/category';
 // 카테고리 타입에 따라 데이터를 가져오는 공통 함수
 const getCategoriesByType = async (categoryType: string): Promise<Category[]> => {
   try {
-    // 한글 파라미터를 URL 인코딩
-    const encodedType = encodeURIComponent(categoryType);
     
     // API 호출
-    const response = await fetchApi<any>(`/categories?categoryType=${encodedType}`);
+    const response = await fetchApi<any>(`/categories/v1/categories?category_type=${categoryType}`);
     
     // categories 키에 있는 배열 반환
     return response.categories || [];
