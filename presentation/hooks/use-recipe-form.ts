@@ -14,9 +14,11 @@ import {
   getCategoryIngredients, 
   getCategoryMethods,
 } from "@/infrastructure/api/repositories/category-repository"
+import { useToast } from "@/components/ui/use-toast"
 
 export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
   const router = useRouter()
+  const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -194,8 +196,11 @@ export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
   }
 
   // 폼 제출 함수
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    // 이벤트가 존재하면 기본 동작 방지
+    if (e) {
+      e.preventDefault()
+    }
 
     // 마지막 단계 유효성 검사
     if (!title) {
@@ -220,17 +225,18 @@ export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
     setError(null)
 
     try {
-      // 레시피 데이터 준비
+      // 레시피 데이터 준비 - snake_case와 카테고리 ID 적용
       const recipeData: Recipe = {
         title,
         description,
         ingredients,
         seasonings,
         instructions,
-        category_type: categoryType,
-        category_situation: categorySituation,
-        category_ingredient: categoryIngredient,
-        category_method: categoryMethod,
+        // 카테고리 필드명을 snake_case로 사용하고 ID 값을 그대로 전달
+        category_type_id: categoryType ? parseInt(categoryType, 10) : null,
+        category_situation_id: categorySituation ? parseInt(categorySituation, 10) : null,
+        category_ingredient_id: categoryIngredient ? parseInt(categoryIngredient, 10) : null,
+        category_method_id: categoryMethod ? parseInt(categoryMethod, 10) : null,
         prep_time: prepTime,
         cook_time: cookTime,
         serving_size: servingSize,
@@ -244,10 +250,23 @@ export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
       const createRecipeUseCase = new CreateRecipeUseCase(recipeRepository)
       await createRecipeUseCase.execute(recipeData)
 
+      // 성공 시 토스트 알림
+      toast({
+        title: "저장 되었습니다.",
+        variant: "success",
+      })
+
       // 성공 시 레시피 목록 페이지로 이동
       router.push("/recipes")
     } catch (err) {
       setError(err instanceof Error ? err.message : "레시피 저장 중 오류가 발생했습니다.")
+      
+      // 실패 시 토스트 알림
+      toast({
+        title: "저장 실패",
+        description: err instanceof Error ? err.message : "레시피 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }

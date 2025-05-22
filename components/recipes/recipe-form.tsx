@@ -91,8 +91,17 @@ export default function RecipeForm() {
     handleSubmit,
   } = useRecipeForm()
 
+  // 폼 제출 방지 함수
+  const preventFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // 마지막 단계가 아닐 때는 폼 제출을 항상 방지
+    if (currentStep < 4) {
+      return false;
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto">
+    <form onSubmit={preventFormSubmit} className="space-y-8 max-w-4xl mx-auto">
       {/* 단계 표시 */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-2">
@@ -602,12 +611,17 @@ export default function RecipeForm() {
           이전
         </Button>
 
+        {/* 마지막 단계가 아닐 때는 다음 버튼, 마지막 단계일 때는 저장 버튼 */}
         {currentStep < 4 ? (
           <Button type="button" onClick={goToNextStep}>
             다음
           </Button>
         ) : (
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="button" 
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "저장 중..." : "레시피 저장"}
           </Button>
         )}
