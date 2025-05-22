@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 
@@ -15,6 +15,7 @@ export function Pagination({
   onPageChange,
   disabled = false
 }: PaginationProps) {
+
   // 페이지 번호 배열 생성 (최대 5개)
   const generatePageNumbers = () => {
     const pages = []

@@ -4,14 +4,8 @@ import { fetchApi } from "./httpClient"
 
 // 백엔드 API 응답 구조에 맞는 인터페이스 추가
 interface RecipePageResponse {
+  total_count: number
   recipes: Recipe[]
-  total_elements: number
-  total_pages: number
-  number: number
-  size: number
-  first: boolean
-  last: boolean
-  empty: boolean
 }
 
 export class RecipeApi implements RecipeRepository {
@@ -25,103 +19,71 @@ export class RecipeApi implements RecipeRepository {
     const queryParams = new URLSearchParams()
 
     if (filters) {
-      // 기본 페이지 크기 설정
+      // 기본 페이지 크기 설정 (백엔드는 0부터 시작하는 페이지 인덱스를 사용)
       const page = filters.page !== undefined ? filters.page : 0
-      const size = filters.size !== undefined ? filters.size : 6
+      const pageSize = filters.pageSize !== undefined ? filters.pageSize : 6
       
-      // 페이징 및 정렬 파라미터 추가
+      // 페이징 파라미터 추가
       queryParams.append('page', page.toString())
-      queryParams.append('size', size.toString())
+      queryParams.append('pageSize', pageSize.toString())
       
+      // 카테고리 ID 파라미터 추가 (백엔드에서 Long 타입으로 처리)
+      if (filters.categoryTypeId) {
+        queryParams.append('categoryTypeId', filters.categoryTypeId.toString())
+      }
+      
+      if (filters.categorySituationId) {
+        queryParams.append('categorySituationId', filters.categorySituationId.toString())
+      }
+      
+      if (filters.categoryIngredientId) {
+        queryParams.append('categoryIngredientId', filters.categoryIngredientId.toString())
+      }
+      
+      if (filters.categoryMethodId) {
+        queryParams.append('categoryMethodId', filters.categoryMethodId.toString())
+      }
+      
+      // 기타 필터 파라미터 추가
+      if (filters.difficulty) {
+        queryParams.append('difficulty', filters.difficulty)
+      }
+      
+      // 태그 필터 처리
+      if (filters.tags && Array.isArray(filters.tags)) {
+        filters.tags.forEach(tag => queryParams.append('tags', tag))
+      }
+      
+      // 검색어 파라미터 추가
+      if (filters.search) {
+        queryParams.append('search', filters.search)
+      }
+      
+      // 정렬 파라미터는 백엔드에서 처리 방식 확인 필요
       if (filters.sort) {
         queryParams.append('sort', filters.sort)
       }
-      
-      // 검색 필터 파라미터 추가
-      Object.entries(filters).forEach(([key, value]) => {
-        // 페이징 및 정렬 파라미터는 이미 처리했으므로 제외
-        if (key !== 'page' && key !== 'size' && key !== 'sort' && 
-            value !== undefined && value !== null) {
-          if (Array.isArray(value)) {
-            value.forEach((v) => queryParams.append(key, v))
-          } else {
-            queryParams.append(key, value.toString())
-          }
-        }
-      })
     }
 
     try {
+      // API 엔드포인트 경로 확인 - 백엔드 API와 일치하는지 확인
       const url = `${this.apiPath}/recipes/search?${queryParams.toString()}`
       
-      const response = await fetchApi<any>(url)
+      const response = await fetchApi<RecipePageResponse>(url)
       
-      // 백엔드 응답 구조에 따라 매핑
-      let pageResponse: PageResponse<Recipe>;
+      // 응답 검증
+      if (!response) {
+        throw new Error("레시피 목록을 가져오는데 실패했습니다.")
+      }
+
       
-      // Spring Data 표준 응답 형식 (content 포함)
-      if (response && response.content) {
-        pageResponse = {
-          // 백엔드에서 제공하는 값 그대로 사용
-          content: response.content || [],
-          totalElements: response.total_elements || 0,
-          totalPages: response.total_pages || 1,
-          number: response.number || 0,
-          size: response.size || 6,
-          first: response.first !== undefined ? response.first : response.number === 0,
-          last: response.last !== undefined ? response.last : response.number >= (response.total_pages - 1 || 0),
-          empty: !response.content || response.content.length === 0
-        };
-      } 
-      // 커스텀 응답 형식 (recipes 필드 포함)
-      else if (response && response.recipes) {
-        pageResponse = {
-          // 백엔드에서 제공하는 값 그대로 사용
-          content: response.recipes || [],
-          totalElements: response.total_elements || 0,
-          totalPages: response.total_pages || 1,
-          number: response.number || 0,
-          size: response.size || 6,
-          first: response.first !== undefined ? response.first : response.number === 0,
-          last: response.last !== undefined ? response.last : response.number >= (response.total_pages - 1 || 0),
-          empty: !response.recipes || response.recipes.length === 0
-        };
-      }
-      // 배열 응답인 경우
-      else if (Array.isArray(response)) {
-        // 배열 응답의 경우 페이징 정보가 없으므로 직접 계산
-        const recipes = response;
-        const pageSize = 6;
-        const totalElements = recipes.length;
-        const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
-        
-        pageResponse = {
-          content: recipes,
-          totalElements: totalElements,
-          totalPages: totalPages,
-          number: 0,
-          size: pageSize,
-          first: true,
-          last: totalPages <= 1,
-          empty: recipes.length === 0
-        };
-      }
-      // 그 외의 경우 기본값
-      else {
-        console.error('알 수 없는 API 응답 형식:', response);
-        pageResponse = {
-          content: [],
-          totalElements: 0,
-          totalPages: 1,
-          number: 0,
-          size: 6,
-          first: true,
-          last: true,
-          empty: true
-        };
+      // 백엔드 응답을 PageResponse 형식으로 변환
+      const pageResponse: PageResponse<Recipe> = {
+        content: response.recipes || [],
+        totalCount: response.total_count || 0,
       }
       
-      return pageResponse;
+      return pageResponse
     } catch (error) {
       console.error("레시피 목록 조회 실패:", error)
       throw new Error("레시피 목록을 가져오는데 실패했습니다.")

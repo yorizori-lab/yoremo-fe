@@ -11,13 +11,7 @@ export interface RecipeRepository {
 
 export interface PageResponse<T> {
   content: T[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-  first: boolean
-  last: boolean
-  empty: boolean
+  totalCount: number
 }
 
 export interface RecipeFilters {
@@ -29,6 +23,6 @@ export interface RecipeFilters {
   search?: string
   tags?: string[]
   page?: number
-  size?: number
+  pageSize?: number
   sort?: string
 }

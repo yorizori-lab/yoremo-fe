@@ -19,17 +19,10 @@ export default function RecipeList({ initialFilters }: RecipeListProps) {
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
     refreshData();
-  }, [refreshData]);
-
-  // 디버깅용 로그
-  useEffect(() => {
-    // 첫 번째 레시피 데이터 형식 확인
-    if (recipes.length > 0) {
-      const firstRecipe = recipes[0];
-    }
-  }, [recipes, pagination]);
+  }, [refreshData, initialFilters]);
 
   if (error) {
+    console.error("레시피 목록 에러:", error);
     return (
       <div className="p-8 text-center">
         <p className="text-destructive">레시피를 불러오는데 실패했습니다.</p>
@@ -64,7 +57,7 @@ export default function RecipeList({ initialFilters }: RecipeListProps) {
         {/* 레시피 컨테이너 - 카드 크기 고정 */}
         <div className="grid-container">
           {recipes.map((recipe) => (
-            <div className="recipe-card-wrapper" key={recipe.recipeId || recipe.recipe_id}>
+            <div className="recipe-card-wrapper" key={recipe.recipe_id}>
               <RecipeCard recipe={recipe} />
             </div>
           ))}
@@ -115,15 +108,16 @@ export default function RecipeList({ initialFilters }: RecipeListProps) {
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   // 백엔드 API 응답 필드명에 맞게 조정 (snake_case와 camelCase 모두 지원)
-  const recipeId = recipe.recipeId || recipe.recipe_id
+  const recipeId = recipe.recipe_id
   const title = recipe.title
-  const imageUrl = recipe.imageUrl || recipe.image_url
-  const cookTime = recipe.cookTime || recipe.cook_time
-  const servingSize = recipe.servingSize || recipe.serving_size
-  const categoryType = recipe.categoryType || recipe.category_type
+  const imageUrl = recipe.image_url
+  const cookTime = recipe.cook_time
+  const servingSize = recipe.serving_size
+  const categoryType = recipe.category_type
   const difficulty = recipe.difficulty
 
   if (!title || !recipeId) {
+    console.warn("레시피 카드 필수 데이터 누락:", recipe);
     return null;
   }
 

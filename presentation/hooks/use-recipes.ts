@@ -9,10 +9,21 @@ import { RecipeApi } from "@/infrastructure/api/recipe-api"
 // 기본 페이지 크기
 const DEFAULT_PAGE_SIZE = 6;
 
+// 확장된 페이지네이션 타입 (UI에 필요한 추가 정보 포함)
+interface ExtendedPagination {
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+  first: boolean
+  last: boolean
+  empty: boolean
+}
+
 export function useRecipes(initialFilters?: RecipeFilters) {
   const [recipes, setRecipes] = useState<Recipe[]>([])
   // 페이징 정보 초기화
-  const [pagination, setPagination] = useState<Omit<PageResponse<Recipe>, 'content'>>({
+  const [pagination, setPagination] = useState<ExtendedPagination>({
     totalElements: 0,
     totalPages: 1, // 최소 1페이지로 시작
     number: 0,
@@ -24,8 +35,8 @@ export function useRecipes(initialFilters?: RecipeFilters) {
   // 초기 필터에 페이지 크기 설정
   const [filters, setFilters] = useState<RecipeFilters>(
     initialFilters ? 
-    { ...initialFilters, size: initialFilters.size || DEFAULT_PAGE_SIZE } : 
-    { page: 0, size: DEFAULT_PAGE_SIZE }
+    { ...initialFilters, pageSize: initialFilters.pageSize || DEFAULT_PAGE_SIZE } : 
+    { page: 0, pageSize: DEFAULT_PAGE_SIZE }
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -40,23 +51,34 @@ export function useRecipes(initialFilters?: RecipeFilters) {
       const getRecipesUseCase = new GetRecipesUseCase(recipeRepository)
       const result = await getRecipesUseCase.execute(currentFilters)
       
-      // 페이징 정보와 레시피 목록 분리하여 저장
       if (result && result.content) {
         const recipes = result.content;
         
         // 레시피가 있으면 설정
         setRecipes(recipes)
         
-        // 백엔드에서 제공하는 페이징 정보 그대로 사용
-        setPagination({
-          totalElements: result.totalElements,
-          totalPages: result.totalPages,
-          number: result.number,
-          size: result.size,
-          first: result.first,
-          last: result.last,
+        // 페이지 크기
+        const size = currentFilters.pageSize || DEFAULT_PAGE_SIZE;
+        
+        // 현재 페이지 번호 (0-based)
+        const page = currentFilters.page || 0;
+        
+        // 전체 페이지 수 계산
+        const totalCount = result.totalCount || 0;
+        const totalPages = Math.max(1, Math.ceil(totalCount / size));
+        
+        // 페이지네이션 정보 계산
+        const paginationInfo: ExtendedPagination = {
+          totalElements: totalCount,
+          totalPages: totalPages,
+          number: page,
+          size: size,
+          first: page === 0,
+          last: page >= totalPages - 1,
           empty: recipes.length === 0
-        })
+        };
+        
+        setPagination(paginationInfo);
       } else {
         console.error('API 응답에 content가 없음');
         setRecipes([])
@@ -99,9 +121,10 @@ export function useRecipes(initialFilters?: RecipeFilters) {
     }
     
     // 페이지 크기가 설정되지 않았으면 기본값 사용
-    if (newFilters.size === undefined && !filters.size) {
-      newFilters.size = DEFAULT_PAGE_SIZE
+    if (newFilters.pageSize === undefined && !filters.pageSize) {
+      newFilters.pageSize = DEFAULT_PAGE_SIZE
     }
+    
     
     // 필터 상태 업데이트 및 즉시 API 호출
     setFilters(prev => {
@@ -117,7 +140,7 @@ export function useRecipes(initialFilters?: RecipeFilters) {
   // 페이지 변경 함수
   const changePage = useCallback((newPage: number) => {
     updateFilters({ page: newPage });
-  }, [updateFilters, pagination.number]);
+  }, [updateFilters]);
 
   // 데이터 새로고침 함수 - 현재 필터로 다시 로드
   const refreshData = useCallback(() => {

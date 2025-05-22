@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { Recipe, Ingredient, Seasoning, Instruction } from "@/domain/models/recipe"
+import { Category } from "@/domain/models/category"
 import { CreateRecipeUseCase } from "@/application/use-cases/recipe/create-recipe"
 import { RecipeApi } from "@/infrastructure/api/recipe-api"
 import { 
@@ -12,7 +13,6 @@ import {
   getCategorySituations, 
   getCategoryIngredients, 
   getCategoryMethods,
-  type Category 
 } from "@/infrastructure/api/repositories/category-repository"
 
 export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
@@ -31,12 +31,12 @@ export function useRecipeForm(initialRecipe?: Partial<Recipe>) {
   // 기본 정보
   const [title, setTitle] = useState(initialRecipe?.title || "")
   const [description, setDescription] = useState(initialRecipe?.description || "")
-  const [categoryType, setCategoryType] = useState<number | null>(initialRecipe?.category_type || null)
-  const [categorySituation, setCategorySituation] = useState<number | null>(initialRecipe?.category_situation || null)
-  const [categoryIngredient, setCategoryIngredient] = useState<number | null>(
+  const [categoryType, setCategoryType] = useState<string | null>(initialRecipe?.category_type || null)
+  const [categorySituation, setCategorySituation] = useState<string | null>(initialRecipe?.category_situation || null)
+  const [categoryIngredient, setCategoryIngredient] = useState<string | null>(
     initialRecipe?.category_ingredient || null,
   )
-  const [categoryMethod, setCategoryMethod] = useState<number | null>(initialRecipe?.category_method || null)
+  const [categoryMethod, setCategoryMethod] = useState<string | null>(initialRecipe?.category_method || null)
   const [prepTime, setPrepTime] = useState<number | null>(initialRecipe?.prep_time || null)
   const [cookTime, setCookTime] = useState<number | null>(initialRecipe?.cook_time || null)
   const [servingSize, setServingSize] = useState<number | null>(initialRecipe?.serving_size || null)

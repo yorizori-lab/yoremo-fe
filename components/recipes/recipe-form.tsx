@@ -170,7 +170,7 @@ export default function RecipeForm() {
                 ) : (
                   <Select
                     value={categoryType?.toString() || ""}
-                    onValueChange={(value) => setCategoryType(Number.parseInt(value))}
+                    onValueChange={(value) => setCategoryType(value)}
                   >
                     <SelectTrigger id="category-type">
                       <SelectValue placeholder="종류 선택" />
@@ -196,7 +196,7 @@ export default function RecipeForm() {
                 ) : (
                   <Select
                     value={categorySituation?.toString() || ""}
-                    onValueChange={(value) => setCategorySituation(Number.parseInt(value))}
+                    onValueChange={(value) => setCategorySituation(value)}
                   >
                     <SelectTrigger id="category-situation">
                       <SelectValue placeholder="상황 선택" />
@@ -222,7 +222,7 @@ export default function RecipeForm() {
                 ) : (
                   <Select
                     value={categoryIngredient?.toString() || ""}
-                    onValueChange={(value) => setCategoryIngredient(Number.parseInt(value))}
+                    onValueChange={(value) => setCategoryIngredient(value)}
                   >
                     <SelectTrigger id="category-ingredient">
                       <SelectValue placeholder="주 재료 선택" />
@@ -248,7 +248,7 @@ export default function RecipeForm() {
                 ) : (
                   <Select
                     value={categoryMethod?.toString() || ""}
-                    onValueChange={(value) => setCategoryMethod(Number.parseInt(value))}
+                    onValueChange={(value) => setCategoryMethod(value)}
                   >
                     <SelectTrigger id="category-method">
                       <SelectValue placeholder="조리 방법 선택" />

@@ -3,7 +3,6 @@
 import { useState } from "react"
 import RecipeList from "@/components/recipes/recipe-list"
 import RecipeFilters from "@/components/recipes/recipe-filters"
-import { RecipeListSkeleton } from "@/components/recipes/recipe-list-skeleton"
 import { RecipeFilters as RecipeFiltersType } from "@/domain/repositories/recipe-repository"
 
 export default function RecipesPage() {
