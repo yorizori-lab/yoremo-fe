@@ -68,10 +68,8 @@ export class RecipeApi implements RecipeRepository {
     try {
       // API 엔드포인트 경로 확인 - 백엔드 API와 일치하는지 확인
       const url = `${this.apiPath}/recipes/search?${queryParams.toString()}`
-      console.log(url)
       
       const response = await fetchApi<RecipePageResponse>(url)
-      console.log(response)
       // 응답 검증
       if (!response) {
         throw new Error("레시피 목록을 가져오는데 실패했습니다.")
